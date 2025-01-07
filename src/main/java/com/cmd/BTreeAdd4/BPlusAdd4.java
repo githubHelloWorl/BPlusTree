@@ -1,0 +1,246 @@
+package com.cmd.BTreeAdd4;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+
+public class BPlusAdd4<V, K extends Comparable<K>> {
+    // 阶数
+    private int order;
+    // 根节点
+    private Node<V, K> root;
+
+    // 构造函数
+    public BPlusAdd4() {
+        this(3);
+    }
+
+    public BPlusAdd4(int order) {
+        this.order = order;
+        root = new LeafNode<V, K>();
+    }
+
+    // 打印
+    public void print(){
+        printTree(root, 0);
+    }
+
+    private void printTree(Node<V, K> node, int level){
+        System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
+        for(Node<V, K> node1 : node.childs){
+            if(node1 != null)
+                printTree(node1, level+1);
+        }
+    }
+
+    public void insert(K key, V value){
+        // 观察返回值 node,是否为空
+        Node<V, K> node = root.insert(key, value);
+        if(node != null){
+            this.root = node;
+        }
+    }
+
+    /**
+     * 节点
+     * @param <V>
+     * @param <K>
+     */
+    abstract class Node<V, K extends Comparable<K>> {
+        // 父节点
+        protected Node<V, K> parent;
+        // 子节点
+        protected Node<V, K>[] childs;
+        // 键数量
+        protected int number;
+        // 键
+        protected Object[] keys;
+
+        public Node(){
+            this.number = 0;
+            this.keys = new Object[order + 1];
+            this.parent = null;
+            this.childs = new Node[order + 1];
+        }
+
+        // 打印键
+        public String printKeys() {
+            return Arrays.toString(Arrays.stream(keys).toList().subList(0, number).toArray());
+        }
+
+        // 打印值
+        abstract String printValues();
+
+        // 插入
+        abstract Node<V, K> insert(K key, V value);
+
+        // 更新最大键值
+        // 1 首先本节点已更新最大键值
+        // 2 根据本节点最大键值,陆续更新父节点的最大键值
+        protected void updateMaxKey(Node<V, K> node){
+            if(node.parent != null){
+                // todo 此处可以使用 Math.max
+                node.parent.keys[node.parent.number - 1] = node.keys[node.number - 1];
+                updateMaxKey(node.parent);
+            }
+        }
+    }
+
+    /**
+     * 非叶子节点
+     * @param <V>
+     * @param <K>
+     */
+    class BPlusNode<V, K extends Comparable<K>> extends Node<V, K> {
+
+        public BPlusNode(){super();}
+
+//        /**
+//         * 打印
+//         * @return
+//         */
+//        @Override
+//        String printKeys() {
+//            return Arrays.toString(super.keys);
+//        }
+
+        @Override
+        String printValues() {
+            return "";
+        }
+
+        @Override
+        Node<V, K> insert(K key, V value) {
+            int i = 0;
+            Node<V, K> node = null;
+            while(i < number){
+                if(key.compareTo((K) keys[i]) <= 0){
+                    node = childs[i].insert(key, value);
+                    break;
+                }
+                ++i;
+            }
+            if(i == number)
+                node = childs[number - 1].insert(key, value);
+
+//            if(node != null){
+//                System.arraycopy(node.childs, 0, childs, 0, node.number);
+//                System.arraycopy(node.keys, 0, keys, 0, node.number);
+//                this.number = node.number;
+//            }
+            return node;
+        }
+    }
+
+    /**
+     * 叶子节点
+     * @param <V>
+     * @param <K>
+     */
+    class LeafNode<V, K extends Comparable<K>> extends Node<V, K> {
+        // 保存的值
+        private Object[] values;
+        // 左侧叶子节点
+        private LeafNode<V, K> left;
+        // 右侧叶子节点
+        private LeafNode<V, K> right;
+
+        public LeafNode(){
+            super();
+            this.values = new Object[order + 1];
+            left = null;
+            right = null;
+        }
+
+        @Override
+        String printValues() {
+            return Arrays.toString(Arrays.stream(values).toList().subList(0, number).toArray());
+        }
+
+        @Override
+        Node<V, K> insert(K key, V value) {
+            // 查找到对应的位置,并插入
+            // 如果是空的,则直接插入,此时注意要修改父节点的最大值
+            boolean isMaxKey = false;
+            if(number == 0){
+                keys[number] = key;
+                values[number] = value;
+            } else {
+                // 从后往前比较
+                // 如果最大key值都小于传入的key,则不需要比较了
+                if(key.compareTo((K) keys[number - 1]) > 0){
+                    keys[number] = key;
+                    values[number] = value;
+                    // 更新最大值标识
+                    isMaxKey = true;
+                }else{
+                    // 如果不是最大值,则正常比较
+                    int i = number - 1;
+                    while(i >= 0 && key.compareTo((K) keys[i]) < 0){
+                        keys[i + 1] = keys[i];
+                        values[i + 1] = values[i];
+                        --i;
+                    }
+                    keys[i + 1] = key;
+                    values[i + 1] = value;
+                }
+            }
+            ++number;
+            // 逐步更新父节点最大键值,需要在更新number后再更新最大键值
+            if(isMaxKey)
+                this.updateMaxKey(this);
+
+            // 判断当前节点键数量是否超过阶数,则进行分裂
+            if(number > order){
+                // 设置分割线
+                int split = (this.number - 1) / 2;
+                // 创建新的叶子节点
+                LeafNode<V, K> node = new LeafNode<>();
+                node.parent = this.parent;
+                this.right = node;
+                node.left = this;
+                for(int i = split + 1; i < this.number; ++i){
+                    node.keys[node.number] = keys[i];
+                    node.values[node.number++] = values[i];
+                }
+                this.number = split + 1;
+
+                // 如果父节点是空
+                if(parent == null){
+                    BPlusNode<V, K> node2 = new BPlusNode<>();
+                    node2.childs[node2.number] = this;
+                    node2.keys[node2.number++] = this.keys[this.number - 1];
+                    node2.childs[node2.number] = node;
+                    node2.keys[node2.number++] = node.keys[node.number - 1];
+                    this.parent = node2;
+                    node.parent = node2;
+                    return node2;
+                }else{
+                    // 如果有父节点,则可以在父节点上操作了
+                    parent.keys[parent.number] = node.keys[node.number - 1];
+                    parent.childs[parent.number] = node;
+                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
+                    parent.childs[parent.number - 1] = this;
+                    ++parent.number;
+                }
+            }
+            return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(3);
+        b.insert(4, 2);
+        b.insert(5, 1);
+        b.insert(1, 3);
+        b.insert(2, 4);
+        b.insert(7, 8);
+        b.insert(3, 8);
+        b.insert(9, 8);
+        b.insert(10, 8);
+
+        b.print();
+
+    }
+}
