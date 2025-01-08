@@ -35,9 +35,7 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
     public void insert(K key, V value){
         // 观察返回值 node,是否为空
         Node<V, K> node = root.insert(key, value);
-        if(node != null){
-            this.root = node;
-        }
+        root = node != null ? node : root;
     }
 
     /**
@@ -83,6 +81,11 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                 updateMaxKey(node.parent);
             }
         }
+
+        // 操作错误,提示
+        protected void useError(String msg){
+            throw new RuntimeException(msg);
+        }
     }
 
     /**
@@ -93,15 +96,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
     class BPlusNode<V, K extends Comparable<K>> extends Node<V, K> {
 
         public BPlusNode(){super();}
-
-//        /**
-//         * 打印
-//         * @return
-//         */
-//        @Override
-//        String printKeys() {
-//            return Arrays.toString(super.keys);
-//        }
 
         @Override
         String printValues() {
@@ -122,11 +116,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
             if(i == number)
                 node = childs[number - 1].insert(key, value);
 
-//            if(node != null){
-//                System.arraycopy(node.childs, 0, childs, 0, node.number);
-//                System.arraycopy(node.keys, 0, keys, 0, node.number);
-//                this.number = node.number;
-//            }
             // 判断自身有没有超过度
             if(this.number > order){
                 // 设置分割线
@@ -174,13 +163,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                             parent.childs[k] = node1;
                         }
                     }
-
-//                    // 如果有父节点,则可以在父节点上操作了
-//                    parent.keys[parent.number] = node1.keys[node1.number - 1];
-//                    parent.childs[parent.number] = node1;
-//                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
-//                    parent.childs[parent.number - 1] = this;
-//                    ++parent.number;
                 }
             }
 
@@ -236,6 +218,9 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                         keys[i + 1] = keys[i];
                         values[i + 1] = values[i];
                         --i;
+                    }
+                    if(i >= 0 && key.compareTo((K) keys[i]) == 0){
+                        useError("不允许有相同的键值");
                     }
                     keys[i + 1] = key;
                     values[i + 1] = value;
@@ -293,12 +278,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                             parent.childs[i] = node;
                         }
                     }
-
-//                    parent.keys[parent.number] = node.keys[node.number - 1];
-//                    parent.childs[parent.number] = node;
-//                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
-//                    parent.childs[parent.number - 1] = this;
-//                    ++parent.number;
                 }
             }
             return null;
@@ -306,11 +285,14 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
     }
 
     public static void main(String[] args) {
-        BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(3);
-        b.insert(40, 2);
-//        b.insert(31, 1);
-//        b.insert(30, 3);
-//        b.insert(29, 4);
+        BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(4);
+        b.insert(40, 40);
+        b.insert(31, 31);
+        b.insert(30, 30);
+        b.insert(29, 29);
+        for(int i = 100; i > 50; --i){
+            b.insert(i, i);
+        }
 //        b.insert(27, 8);
 //        b.insert(3, 8);
 //        b.insert(9, 8);
