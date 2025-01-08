@@ -1,9 +1,8 @@
 package com.cmd.BTreeAdd4;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class BPlusAdd4<V, K extends Comparable<K>> {
     // 阶数
@@ -26,20 +25,49 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         printTree(root, 0);
     }
 
+    // 打印树形
+    public void print1(){
+        printTree1(root);
+    }
+
     private void printTree(Node<V, K> node, int level){
         System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
-        for(Node<V, K> node1 : node.childs){
+        for(int i = 0; i < node.number;++i){
+            Node<V, K> node1 = node.childs[i];
             if(node1 != null)
                 printTree(node1, level+1);
+        }
+    }
+
+    private void printTree1(Node<V, K> node){
+        if(node == null) return;
+        Queue<Node<V, K>> queue = new LinkedList<>();
+        queue.add(node);
+        Node<V, K> nodeFlag = node;
+        int level = -1;
+        while(queue.size() > 0){
+            Node<V, K> nodeTemp = queue.poll();
+            if(nodeFlag == nodeTemp){
+                ++level;
+                if(nodeFlag != root) System.out.println();
+                System.out.print("Level: " + level + ": ");
+                nodeFlag = null;
+            }
+            System.out.print(nodeTemp.printKeys() + "," + nodeTemp.printValues() + "  ");
+            for(int i = 0; i < nodeTemp.number; ++i){
+                Node<V, K> node1 = nodeTemp.childs[i];
+                if(node1 != null){
+                    if(nodeFlag == null) nodeFlag = node1;
+                    queue.add(node1);
+                }
+            }
         }
     }
 
     public void insert(K key, V value){
         // 观察返回值 node,是否为空
         Node<V, K> node = root.insert(key, value);
-        if(node != null){
-            this.root = node;
-        }
+        root = node != null ? node : root;
     }
 
     /**
@@ -85,6 +113,11 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                 updateMaxKey(node.parent);
             }
         }
+
+        // 操作错误,提示
+        protected void useError(String msg){
+            throw new RuntimeException(msg);
+        }
     }
 
     /**
@@ -95,15 +128,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
     class BPlusNode<V, K extends Comparable<K>> extends Node<V, K> {
 
         public BPlusNode(){super();}
-
-//        /**
-//         * 打印
-//         * @return
-//         */
-//        @Override
-//        String printKeys() {
-//            return Arrays.toString(super.keys);
-//        }
 
         @Override
         String printValues() {
@@ -124,11 +148,56 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
             if(i == number)
                 node = childs[number - 1].insert(key, value);
 
-//            if(node != null){
-//                System.arraycopy(node.childs, 0, childs, 0, node.number);
-//                System.arraycopy(node.keys, 0, keys, 0, node.number);
-//                this.number = node.number;
-//            }
+            // 判断自身有没有超过度
+            if(this.number > order){
+                // 设置分割线
+                int split = (this.number - 1) / 2;
+                // 创建新的非叶子节点
+                BPlusNode<V, K> node1 = new BPlusNode<>();
+                node1.parent = this.parent;
+                for(int j = split + 1; j < this.number; ++j){
+                    node1.keys[node1.number] = keys[j];
+                    node1.childs[node1.number++] = childs[j];
+                    // 更新子节点的父节点
+                    childs[j].parent = node1;
+                }
+                this.number = split + 1;
+
+                // 如果父节点是空
+                if(parent == null){
+                    BPlusNode<V, K> node2 = new BPlusNode<>();
+                    node2.childs[node2.number] = this;
+                    node2.keys[node2.number++] = this.keys[this.number - 1];
+                    node2.childs[node2.number] = node1;
+                    node2.keys[node2.number++] = node1.keys[node1.number - 1];
+                    this.parent = node2;
+                    node1.parent = node2;
+                    return node2;
+                }else{
+                    // 如果有父节点,则可以在父节点上操作了
+                    // 操作小键,从前往后遍历,用于插入数据(因为肯定有数据)
+                    for(int k = 0; k < parent.number; ++k){
+                        if(((K)this.keys[this.number - 1]).compareTo((K)parent.keys[k]) < 0){
+                            for(int j = parent.number; j > k; --j){
+                                parent.keys[j] = parent.keys[j - 1];
+                                parent.childs[j] = parent.childs[j - 1];
+                            }
+                            parent.keys[k] = this.keys[this.number - 1];
+                            parent.childs[k] = this;
+                            ++parent.number;
+                            break;
+                        }
+                    }
+
+                    // 操作大键,从后往前,肯定有相同的键
+                    for(int k = parent.number - 1; k >= 0; --k){
+                        if(((K)node1.keys[node1.number - 1]).compareTo((K)parent.keys[k]) == 0){
+                            parent.childs[k] = node1;
+                        }
+                    }
+                }
+            }
+
             return node;
         }
     }
@@ -182,6 +251,9 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                         values[i + 1] = values[i];
                         --i;
                     }
+                    if(i >= 0 && key.compareTo((K) keys[i]) == 0){
+                        useError("不允许有相同的键值");
+                    }
                     keys[i + 1] = key;
                     values[i + 1] = value;
                 }
@@ -218,11 +290,26 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                     return node2;
                 }else{
                     // 如果有父节点,则可以在父节点上操作了
-                    parent.keys[parent.number] = node.keys[node.number - 1];
-                    parent.childs[parent.number] = node;
-                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
-                    parent.childs[parent.number - 1] = this;
-                    ++parent.number;
+                    // 操作小键,从前往后遍历,用于插入数据(因为肯定有数据)
+                    for(int i = 0; i < parent.number; ++i){
+                        if(((K)this.keys[this.number - 1]).compareTo((K)parent.keys[i]) < 0){
+                            for(int j = parent.number; j > i; --j){
+                                parent.keys[j] = parent.keys[j - 1];
+                                parent.childs[j] = parent.childs[j - 1];
+                            }
+                            parent.keys[i] = this.keys[this.number - 1];
+                            parent.childs[i] = this;
+                            ++parent.number;
+                            break;
+                        }
+                    }
+
+                    // 操作大键,从后往前,肯定有相同的键
+                    for(int i = parent.number - 1; i >= 0; --i){
+                        if(((K)node.keys[node.number - 1]).compareTo((K)parent.keys[i]) == 0){
+                            parent.childs[i] = node;
+                        }
+                    }
                 }
             }
             return null;
@@ -231,16 +318,29 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
 
     public static void main(String[] args) {
         BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(3);
-        b.insert(4, 2);
-        b.insert(5, 1);
-        b.insert(1, 3);
-        b.insert(2, 4);
-        b.insert(7, 8);
-        b.insert(3, 8);
-        b.insert(9, 8);
-        b.insert(10, 8);
+        b.insert(40, 40);
+        b.insert(31, 31);
+        b.insert(30, 30);
+        b.insert(29, 29);
+        for(int i = 100; i > 90; --i){
+            b.insert(i, i);
+        }
+//        b.insert(27, 8);
+//        b.insert(3, 8);
+//        b.insert(9, 8);
+//        b.insert(10, 10);
+//        b.insert(18, 10);
+//        b.insert(17, 10);
+//        b.insert(16, 10);
+//        b.insert(15, 10);
+//        b.insert(1, 1);
+//        b.insert(2, 1);
+//        b.insert(59, 1);
+//        b.insert(58, 58);
+//        b.insert(57, 57);
+//        b.insert(56, 56);
 
-        b.print();
+        b.print1();
 
     }
 }
