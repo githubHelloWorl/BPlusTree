@@ -62,18 +62,6 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                 }
             }
         }
-
-
-//        System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
-//        while(node != null){
-//            ++level;
-//            for(int i = 0; i < node.number; ++i){
-//                Node<V, K> node1 = node.childs[i];
-//                if(node1 != null){
-//                    System.out.println("Level: " + level + ": " + node1.printKeys() + ", " + node1.printValues());
-//                }
-//            }
-//        }
     }
 
     public void insert(K key, V value){
