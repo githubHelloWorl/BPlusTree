@@ -1,6 +1,8 @@
 package com.cmd.BTreeAdd4;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class BPlusAdd4<V, K extends Comparable<K>> {
     // 阶数
@@ -23,6 +25,11 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         printTree(root, 0);
     }
 
+    // 打印树形
+    public void print1(){
+        printTree1(root);
+    }
+
     private void printTree(Node<V, K> node, int level){
         System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
         for(int i = 0; i < node.number;++i){
@@ -30,6 +37,43 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
             if(node1 != null)
                 printTree(node1, level+1);
         }
+    }
+
+    private void printTree1(Node<V, K> node){
+        if(node == null) return;
+        Queue<Node<V, K>> queue = new LinkedList<>();
+        queue.add(node);
+        Node<V, K> nodeFlag = node;
+        int level = -1;
+        while(queue.size() > 0){
+            Node<V, K> nodeTemp = queue.poll();
+            if(nodeFlag == nodeTemp){
+                ++level;
+                if(nodeFlag != root) System.out.println();
+                System.out.print("Level: " + level + ": ");
+                nodeFlag = null;
+            }
+            System.out.print(nodeTemp.printKeys() + "," + nodeTemp.printValues() + "  ");
+            for(int i = 0; i < nodeTemp.number; ++i){
+                Node<V, K> node1 = nodeTemp.childs[i];
+                if(node1 != null){
+                    if(nodeFlag == null) nodeFlag = node1;
+                    queue.add(node1);
+                }
+            }
+        }
+
+
+//        System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
+//        while(node != null){
+//            ++level;
+//            for(int i = 0; i < node.number; ++i){
+//                Node<V, K> node1 = node.childs[i];
+//                if(node1 != null){
+//                    System.out.println("Level: " + level + ": " + node1.printKeys() + ", " + node1.printValues());
+//                }
+//            }
+//        }
     }
 
     public void insert(K key, V value){
@@ -285,12 +329,12 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
     }
 
     public static void main(String[] args) {
-        BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(4);
+        BPlusAdd4<Integer, Integer> b = new BPlusAdd4<>(3);
         b.insert(40, 40);
         b.insert(31, 31);
         b.insert(30, 30);
         b.insert(29, 29);
-        for(int i = 100; i > 50; --i){
+        for(int i = 100; i > 90; --i){
             b.insert(i, i);
         }
 //        b.insert(27, 8);
@@ -308,7 +352,7 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
 //        b.insert(57, 57);
 //        b.insert(56, 56);
 
-        b.print();
+        b.print1();
 
     }
 }
