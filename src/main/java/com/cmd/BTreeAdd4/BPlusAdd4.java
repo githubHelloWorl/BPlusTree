@@ -1,9 +1,6 @@
 package com.cmd.BTreeAdd4;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 
 public class BPlusAdd4<V, K extends Comparable<K>> {
     // 阶数
@@ -28,7 +25,8 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
 
     private void printTree(Node<V, K> node, int level){
         System.out.println("Level: " + level + ": " + node.printKeys() + ", " + node.printValues());
-        for(Node<V, K> node1 : node.childs){
+        for(int i = 0; i < node.number;++i){
+            Node<V, K> node1 = node.childs[i];
             if(node1 != null)
                 printTree(node1, level+1);
         }
@@ -129,6 +127,39 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
 //                System.arraycopy(node.keys, 0, keys, 0, node.number);
 //                this.number = node.number;
 //            }
+            // 判断自身有没有超过度
+            if(this.number > order){
+                // 设置分割线
+                int split = (this.number - 1) / 2;
+                // 创建新的非叶子节点
+                BPlusNode<V, K> node1 = new BPlusNode<>();
+                node1.parent = this.parent;
+                for(int j = split + 1; j < this.number; ++j){
+                    node1.keys[node1.number] = keys[j];
+                    node1.childs[node1.number++] = childs[j];
+                }
+                this.number = split + 1;
+
+                // 如果父节点是空
+                if(parent == null){
+                    BPlusNode<V, K> node2 = new BPlusNode<>();
+                    node2.childs[node2.number] = this;
+                    node2.keys[node2.number++] = this.keys[this.number - 1];
+                    node2.childs[node2.number] = node1;
+                    node2.keys[node2.number++] = node1.keys[node1.number - 1];
+                    this.parent = node2;
+                    node1.parent = node2;
+                    return node2;
+                }else{
+                    // 如果有父节点,则可以在父节点上操作了
+                    parent.keys[parent.number] = node1.keys[node1.number - 1];
+                    parent.childs[parent.number] = node1;
+                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
+                    parent.childs[parent.number - 1] = this;
+                    ++parent.number;
+                }
+            }
+
             return node;
         }
     }
@@ -218,11 +249,32 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
                     return node2;
                 }else{
                     // 如果有父节点,则可以在父节点上操作了
-                    parent.keys[parent.number] = node.keys[node.number - 1];
-                    parent.childs[parent.number] = node;
-                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
-                    parent.childs[parent.number - 1] = this;
-                    ++parent.number;
+                    // 操作小键,从前往后遍历,用于插入数据(因为肯定有数据)
+                    for(int i = 0; i < parent.number; ++i){
+                        if(((K)this.keys[this.number - 1]).compareTo((K)parent.keys[i]) < 0){
+                            for(int j = parent.number; j > i; --j){
+                                parent.keys[j] = parent.keys[j - 1];
+                                parent.childs[j] = parent.childs[j - 1];
+                            }
+                            parent.keys[i] = this.keys[this.number - 1];
+                            parent.childs[i] = this;
+                            ++parent.number;
+                            break;
+                        }
+                    }
+
+                    // 操作大键,从后往前,肯定有相同的键
+                    for(int i = parent.number - 1; i >= 0; --i){
+                        if(((K)node.keys[node.number - 1]).compareTo((K)parent.keys[i]) == 0){
+                            parent.childs[i] = node;
+                        }
+                    }
+
+//                    parent.keys[parent.number] = node.keys[node.number - 1];
+//                    parent.childs[parent.number] = node;
+//                    parent.keys[parent.number - 1] = this.keys[this.number - 1];
+//                    parent.childs[parent.number - 1] = this;
+//                    ++parent.number;
                 }
             }
             return null;
@@ -238,7 +290,12 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         b.insert(7, 8);
         b.insert(3, 8);
         b.insert(9, 8);
-        b.insert(10, 8);
+        b.insert(10, 10);
+//        b.insert(18, 10);
+//        b.insert(17, 10);
+//        b.insert(16, 10);
+//        b.insert(15, 10);
+//        b.insert(1, 1);
 
         b.print();
 
