@@ -64,6 +64,20 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         }
     }
 
+    /**
+     * 查找
+     * @param key
+     * @return
+     */
+    public V find(K key){
+        return root.find(key);
+    }
+
+    /**
+     * 插入
+     * @param key
+     * @param value
+     */
     public void insert(K key, V value){
         // 观察返回值 node,是否为空
         Node<V, K> node = root.insert(key, value);
@@ -92,15 +106,32 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
             this.childs = new Node[order + 1];
         }
 
-        // 打印键
+        /**
+         * 打印键
+         * @return
+         */
         public String printKeys() {
             return Arrays.toString(Arrays.stream(keys).toList().subList(0, number).toArray());
         }
 
-        // 打印值
+        /**
+         * 打印值
+         * @return
+         */
         abstract String printValues();
 
-        // 插入
+        /**
+         * 查找
+         * @return
+         */
+        abstract V find(K key);
+
+        /**
+         * 插入
+         * @param key
+         * @param value
+         * @return
+         */
         abstract Node<V, K> insert(K key, V value);
 
         // 更新最大键值
@@ -132,6 +163,26 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         @Override
         String printValues() {
             return "";
+        }
+
+        @Override
+        V find(K key) {
+            int left = 0, right = number - 1;
+            while(left <= right){
+                int mid = left + (right - left) / 2;
+                K temp = (K) keys[mid];
+                if(key.compareTo(temp) < 0){
+                    right = mid - 1;
+                }else if(key.compareTo(temp) > 0){
+                    left = mid + 1;
+                }else{
+                    return childs[mid].find(key);
+                }
+            }
+            for(int i = 0; i < number; ++i)
+                if(key.compareTo((K) keys[i]) <= 0)
+                    return childs[i].find(key);
+            return childs[number - 1].find(key);
         }
 
         @Override
@@ -225,6 +276,23 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         @Override
         String printValues() {
             return Arrays.toString(Arrays.stream(values).toList().subList(0, number).toArray());
+        }
+
+        @Override
+        V find(K key) {
+            int left = 0, right = number - 1;
+            while(left <= right){
+                int mid = left + (right - left) / 2;
+                K temp = (K) keys[mid];
+                if(key.compareTo(temp) < 0){
+                    right = mid - 1;
+                }else if(key.compareTo(temp) > 0){
+                    left = mid + 1;
+                }else{
+                    return (V) values[mid];
+                }
+            }
+            return null;
         }
 
         @Override
@@ -322,9 +390,11 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
         b.insert(31, 31);
         b.insert(30, 30);
         b.insert(29, 29);
-        for(int i = 100; i > 90; --i){
-            b.insert(i, i);
-        }
+        System.out.println("查找: " + b.find(1));
+        System.out.println("查找: " + b.find(29));
+//        for(int i = 100; i > 90; --i){
+//            b.insert(i, i);
+//        }
 //        b.insert(27, 8);
 //        b.insert(3, 8);
 //        b.insert(9, 8);
@@ -340,7 +410,7 @@ public class BPlusAdd4<V, K extends Comparable<K>> {
 //        b.insert(57, 57);
 //        b.insert(56, 56);
 
-        b.print1();
+//        b.print1();
 
     }
 }
